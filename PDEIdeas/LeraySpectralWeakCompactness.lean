@@ -73,6 +73,42 @@ structure StrongWeakPathSubsequence extends G.StrongWeakSubsequence where
     Tendsto (G.projectedPath m ∘ subseq.idx)
       atTop (nhds (projectedLimit m))
 
+/-- Strong convergence of embedded states identifies any simultaneous weak
+energy limit with its state limit. -/
+def strongWeakSubsequenceOfLimits
+    (subseq : ExtractedSubsequence)
+    (stateLimit : Lp H (2 : ℝ≥0∞) μ)
+    (energyLimit : Lp V (2 : ℝ≥0∞) μ)
+    (hstate : Tendsto (G.stateLp ∘ subseq.idx) atTop (nhds stateLimit))
+    (henergy : ∀ w : Lp V (2 : ℝ≥0∞) μ,
+      Tendsto (fun k => ⟪G.energyLp (subseq.idx k), w⟫_ℝ)
+        atTop (nhds ⟪energyLimit, w⟫_ℝ)) :
+    G.StrongWeakSubsequence := by
+  let A : Lp V (2 : ℝ≥0∞) μ →L[ℝ] Lp H (2 : ℝ≥0∞) μ :=
+    G.embed.compLpL (2 : ℝ≥0∞) μ
+  have hidentify : A energyLimit = stateLimit := by
+    apply ext_inner_right ℝ
+    intro z
+    have hweak := henergy (ContinuousLinearMap.adjoint A z)
+    have hweak' : Tendsto
+        (fun k => ⟪G.stateLp (subseq.idx k), z⟫_ℝ)
+        atTop (nhds ⟪A energyLimit, z⟫_ℝ) := by
+      simpa only [A, G.stateLp_eq_embed_energyLp,
+        ContinuousLinearMap.adjoint_inner_right] using hweak
+    have hstrong : Tendsto
+        (fun k => ⟪G.stateLp (subseq.idx k), z⟫_ℝ)
+        atTop (nhds ⟪stateLimit, z⟫_ℝ) :=
+      ((innerSLFlip ℝ z).continuous.tendsto stateLimit).comp hstate
+    exact tendsto_nhds_unique hweak' hstrong
+  exact {
+    subseq := subseq
+    stateLimit := stateLimit
+    energyLimit := energyLimit
+    state_strong := hstate
+    energy_weak := henergy
+    embed_energyLimit := hidentify
+  }
+
 namespace StrongWeakSubsequence
 
 variable {G : LeraySpectralCompactFamily
@@ -118,6 +154,41 @@ theorem exists_pathwiseRefinement
   intro m
   simpa only [base, sigma, ExtractedSubsequence.comp_idx,
     Function.comp_apply] using P.converges m
+
+omit [CompleteSpace V] [CompleteSpace H] in
+/-- The pathwise refinement can be chosen without changing either space-time
+limit of the original strong/weak extraction. -/
+theorem exists_pathwiseRefinement_preserving
+    (S : G.StrongWeakSubsequence) :
+    ∃ P : G.StrongWeakPathSubsequence,
+      P.stateLimit = S.stateLimit ∧ P.energyLimit = S.energyLimit := by
+  obtain ⟨P⟩ := G.exists_projectedPathSubsequence S.subseq.idx
+  let sigma := S.subseq.comp P.subseq
+  have hstate : Tendsto (G.stateLp ∘ sigma.idx) atTop (nhds S.stateLimit) :=
+    S.state_strong.comp P.subseq.strictMono_idx.tendsto_atTop
+  have henergy : ∀ w : Lp V (2 : ℝ≥0∞) μ,
+      Tendsto (fun k => ⟪G.energyLp (sigma.idx k), w⟫_ℝ)
+        atTop (nhds ⟪S.energyLimit, w⟫_ℝ) := by
+    intro w
+    simpa only [sigma, ExtractedSubsequence.comp_idx] using
+      (S.energy_weak w).comp P.subseq.strictMono_idx.tendsto_atTop
+  let base : G.StrongWeakSubsequence := {
+    subseq := sigma
+    stateLimit := S.stateLimit
+    energyLimit := S.energyLimit
+    state_strong := hstate
+    energy_weak := henergy
+    embed_energyLimit := S.embed_energyLimit
+  }
+  let result : G.StrongWeakPathSubsequence := {
+    toStrongWeakSubsequence := base
+    projectedLimit := P.limit
+    projected_uniform := by
+      intro m
+      simpa only [base, sigma, ExtractedSubsequence.comp_idx,
+        Function.comp_apply] using P.converges m
+  }
+  exact ⟨result, rfl, rfl⟩
 
 omit [CompactSpace I] [CompleteSpace H] in
 /-- Weak energy convergence applies to every continuous linear functional,

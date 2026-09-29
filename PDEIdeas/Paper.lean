@@ -1,5 +1,6 @@
 import PDEIdeas.BoxLerayHopf
 import PDEIdeas.BoxForcedLerayHopf
+import PDEIdeas.OpenDomainGlobalBoundedEnclosure
 
 /-!
 # The paper's import surface
@@ -24,6 +25,11 @@ diffusion form with a state-independent remainder. The same conclusions then
 hold for the driven problem: the forced endpoint is
 `exists_forced_twoDimensional_lerayHopfSolution`, whose weak equation carries
 the forcing term and whose energy inequality carries the accumulated work.
+
+For an arbitrary bounded open planar domain, the unforced endpoint is
+`OpenDomainGlobalBoundedEnclosure.exists_global_solution`. It constructs one
+weakly continuous state path on nonnegative time with finite-horizon energy
+representatives, the tested weak equation, and the energy inequality.
 
 Mathlib supplies the divergence theorem, Gagliardo-Nirenberg-Sobolev inequality,
 multi-torus Fourier theory, compact self-adjoint spectral theorem, Riesz

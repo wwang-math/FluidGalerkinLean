@@ -1,4 +1,5 @@
 import PDEIdeas.Paper
+import PDEIdeas.OpenDomainGlobalBoundedEnclosure
 
 /-!
 # Statement checks
@@ -10,6 +11,43 @@ declaration names.
 open InnerProductSpace MeasureTheory
 
 noncomputable section
+
+example (U : Set (Fin 2 → ℝ)) (hOpen : IsOpen U)
+    (hBound : Bornology.IsBounded U) :
+    ∃ (Q : BoxIntegral.Box (Fin 2)) (Ω : OpenDomainInBox Q),
+      Ω.carrier = U ∧
+      ∀ u₀ : OpenDomainL2Sigma Ω,
+        Nonempty (OpenDomainGlobalLerayHopf.GlobalSolution Ω
+          (boxLadyzhenskayaRealization Q) u₀) :=
+  OpenDomainGlobalBoundedEnclosure.exists_global_solution U hOpen hBound
+
+example {Q : BoxIntegral.Box (Fin 2)} (Ω : OpenDomainInBox Q)
+    (L : BoxLadyzhenskayaRealization Q) (u₀ : OpenDomainL2Sigma Ω)
+    (u : OpenDomainGlobalLerayHopf.GlobalSolution Ω L u₀)
+    (y : OpenDomainL2Sigma Ω) :
+    Continuous (fun t : OpenDomainGlobalLerayHopf.NonnegativeTime =>
+      ⟪u.statePath t, y⟫_ℝ) :=
+  u.weaklyContinuous Ω L u₀ y
+
+example {Q : BoxIntegral.Box (Fin 2)} (Ω : OpenDomainInBox Q)
+    (L : BoxLadyzhenskayaRealization Q) (u₀ : OpenDomainL2Sigma Ω)
+    (u : OpenDomainGlobalLerayHopf.GlobalSolution Ω L u₀)
+    (n : ℕ) (t : Set.Icc (0 : ℝ) (n : ℝ)) :
+    ‖u.statePath ⟨t.1, t.2.1⟩‖ ^ 2 +
+        2 * ∫ s in Set.Iic t,
+          ‖openDomainEnergyGradient Ω ((u.localSolution n).energyPath s)‖ ^ 2
+            ∂OpenDomainIntervalMeasureBridge.timeMeasure 0 (n : ℝ) ≤
+      ‖u₀‖ ^ 2 :=
+  u.energyInequality Ω L u₀ n t
+
+example {Q : BoxIntegral.Box (Fin 2)} (Ω : OpenDomainInBox Q)
+    (L : BoxLadyzhenskayaRealization Q) (u₀ : OpenDomainL2Sigma Ω)
+    (u : OpenDomainGlobalLerayHopf.GlobalSolution Ω L u₀)
+    (n : ℕ) (eta : LerayIntervalTimeTest 0 (n : ℝ))
+    (heta : eta.value (n : ℝ) = 0) (φ : OpenDomainH1ZeroSigma Ω) :
+    OpenDomainConcreteWeakEquation.TestedEquation Ω L u₀
+      (u.localSolution n).energyPath eta φ :=
+  u.weakEquation Ω L u₀ n eta heta φ
 
 example {I : BoxIntegral.Box (Fin 2)} {a b : ℝ}
     (hab : a ≤ b) (u₀ : BoxL2Sigma I) :
